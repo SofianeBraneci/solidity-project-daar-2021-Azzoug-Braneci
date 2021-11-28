@@ -1,0 +1,156 @@
+pragma solidity >=0.4.22 <0.9.0;
+pragma experimental ABIEncoderV2;
+
+import "./Ownable.sol";
+
+contract BuildCollective is Ownable {
+  struct User {
+    string username;
+    uint256 balance;
+    bool registered;
+  }
+
+  address[] public userAddresses;
+
+  struct Enterprise {
+    string name;
+    address owner;
+    address[] membersAddress;
+    uint256 balance;
+  }
+
+  uint256 internal ProjectId;
+
+  struct Project {
+    uint256 id;
+    string name;
+    string link;
+    address owner; 
+    bool ownedByUser; 
+    address[] contributorsAddress;
+    uint256 balance;
+  }
+
+  uint256 internal IssueId;
+
+  struct Issue {
+    uint256 id;
+    string title;
+    string description;
+    string link; 
+    address issuer; 
+    uint256 reward; 
+    bool closed; 
+  }
+
+  mapping(address => User) private users; 
+
+  mapping(address => Enterprise) private enterprises; 
+
+  mapping(address => Project[]) private projects;
+
+  mapping(uint => Issue[]) private issues;
+
+  event UserSignedUp(address indexed userAddress, User indexed user);
+
+  event EnterpriseSignedUp(address indexed ownerAddress, Enterprise indexed enterprise);
+
+  event ProjectCreate(address indexed ownerAddress, Project indexed project);
+
+  event IssueCreate(address indexed issuerAddress, Issue indexed issue);
+
+  function getUserByAddress(address userAddress) public view returns (User memory) {
+    require(users[userAddress].registered);
+    return users[userAddress];
+  }
+
+  function getAllUsers() external view returns (address[] memory) {
+    return userAddresses;
+  }
+
+  function getEnterpriseByAddress(address enterpriseAddress) public view returns (Enterprise memory) {
+    require(users[enterpriseAddress].registered);
+    return enterprises[enterpriseAddress];
+  }
+
+  function getProjectsByAddress(address ownerAddress) public view returns (Project[] memory){
+    require(users[ownerAddress].registered);
+    return projects[ownerAddress];
+  }
+
+  function getProjectByIdAndAddress(address ownerAddress, uint256 id) public view returns (Project memory) {
+    require(users[ownerAddress].registered);
+    Project[] memory ownerProjects = getProjectsByAddress(ownerAddress);
+    for (uint i = 0; i < ownerProjects.length; i++){
+      if (ownerProjects[i].id == id){
+        return ownerProjects[i];
+      }
+    }
+    return ownerProjects[0];
+  }
+
+  function getIssuesByProjectId(uint256 projectId) public view returns (Issue[] memory) {
+    return issues[projectId];
+  }
+
+  function signUp(string memory username, uint256 amount) public returns (User memory) {
+    require(bytes(username).length > 0);
+    users[msg.sender] = User(username, amount, true);
+    emit UserSignedUp(msg.sender, users[msg.sender]);
+    userAddresses.push(msg.sender);
+    return users[msg.sender];
+  }
+
+  function enterpriseSignUp(string memory name, address[] memory address_members, uint256 amount) public returns (Enterprise memory) {
+    require(users[msg.sender].registered);
+    require(bytes(name).length > 0);
+    enterprises[msg.sender] = Enterprise(name, msg.sender, address_members, amount);
+    emit EnterpriseSignedUp(msg.sender, enterprises[msg.sender]);
+    return enterprises[msg.sender];
+  }
+
+  function projectCreate(string memory name, string memory link, bool ownedByUser, address[] memory address_contributors, uint256 amount) public returns (Project memory){
+    require(users[msg.sender].registered);
+    require(bytes(name).length > 0);
+    ProjectId ++;
+    Project memory project = Project(ProjectId, name, link, msg.sender, ownedByUser, address_contributors, amount);
+    projects[msg.sender].push(project);
+    emit ProjectCreate(msg.sender, project);
+    return project;
+  }
+
+  function sponsorProject(address projectOwnerAddress, uint256 idProject, uint256 amountToken) public returns (bool) {
+    require(users[projectOwnerAddress].registered);
+    for (uint i = 0; i < projects[projectOwnerAddress].length; i++){
+      if (projects[projectOwnerAddress][i].id == idProject){
+        users[msg.sender].balance -= amountToken;
+        projects[projectOwnerAddress][i].balance += amountToken;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function createAnIssue(address projectOwnerAddress, uint256 projectId, string memory title, string memory description, string memory link, uint256 reward) public returns (Issue memory){
+    require(users[projectOwnerAddress].registered);
+    require(users[msg.sender].registered);
+    require(bytes(title).length > 0);
+    IssueId++;
+    Issue memory issue = Issue(IssueId, title, description, link, msg.sender, address(0), reward, false);
+    issues[projectId].push(issue);
+    emit IssueCreate(msg.sender, issue);
+    return issue;
+  }
+
+
+
+  function addBalance(uint256 amount) public returns (bool) {
+    require(users[msg.sender].registered);
+    users[msg.sender].balance += amount;
+    return true;
+  }
+
+
+
+
+}
