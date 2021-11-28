@@ -1,4 +1,10 @@
-# Build Collective
+# Build Collective-AZZOUG-BRANECI
+--
+Kouceila AZZOUG
+
+Sofiane BRANECI
+
+--
 
 Welcome to the DAAR project. The idea will be to implement an OpenCollective competitor
 in a decentralized way, on Ethereum. This will have cool side effects, like not
